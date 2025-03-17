@@ -53,7 +53,7 @@ for i = 1:num_files
     else 
         X_test = [X_test; X]; % append the test data
         y_test = [y_test; y];
-        time_test = [time_test; time]; % davethe time values for plotting 
+        time_test = [time_test; time]; % save the time values for plotting 
     end 
 end 
 
