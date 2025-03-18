@@ -55,7 +55,7 @@ for i = 1:8
             X_train = [X_train; windo_features(:)'];
             y_train = [y_train;window_label];
         end 
-    end 
+end 
 
 % train random forest 
 
