@@ -66,3 +66,63 @@ rfModel= TreeBagger(num_trees,X_train,y_train, 'Method', 'classification');
 X_test = [];
 y_test = [];
 time_test = [];
+
+for i = 1:2
+    % load the file 
+    data = readtable(fullfile(test_folder, test_files(i).names));
+
+    % extract time and sensor values 
+    time = data.("Time_s_");
+    sensor_values = table2array(data(:,2:9));
+
+    % defne slip condition for test data 
+    slip_labels = (data.Sensor8 < 0.6) | any(sensor_values(:,1:7)> 0.5,2);
+
+    % apply moving window 
+    num_samples = length(time);
+    for j = 1:step_size:(num_samples-window_size+1)
+        % extract windowed data 
+        window_data = sensor_values(j:j+window_size-1,:);
+        window_label = mode(slip_labels(j:j+window_size-1));
+
+        % compute window-based features (mean, std, max, min)
+        window_features = [mean(window_data); std(window_data); max(window_data); min(window_data)];
+        
+        % store features, labels, and time for testing 
+        X_test = [X_test; window_features(:)'];
+        y_test = [y_test; window_label];
+        % store the time for plotting 
+        time_test =[time_test; time(j)];
+    end
+end
+
+% test model on new data 
+% get predicted slip values 
+y_pred = str2double(predict(rfModel, X_test));
+
+% calcualte accuracy 
+accuracy = sum(y_pred == y_test)/ length(y_test)*100;
+fprintf('Model accuracy: %.2f%%\n', accuracy);
+
+%  save predictions to csv file 
+results_table = table(time,y_test,y_pred, 'VariableNames', {'Time','Actual_Slip','Predicted_Slip'});
+writetable(results_table,"predicted.csv");
+fprintf('Predictions saved to predictions.csv\n');
+
+% plot actual vs. predicted slip & save the plot 
+figure;
+hold on;
+% light blue shading for actual slip regions 
+area(time_test,y_test,'FaceColor',[0.7,0.9,1],'EdgeColor','none','FaceAlpha',0.5);
+% Actual slip (blue circles)
+plot(time_test,y_test,'bo-','MarkerSize',4,'DisplayName','Actual Slip')
+plot(time_test, y_pred, 'r.-', 'MarkerSize', 10, 'DisplayName', 'Predicted Slip'); % Predicted slip (red dots)
+xlabel('Time (s)');
+ylabel('Slip Status (0 = No Slip, 1 = Slip)');
+title('Moving Window Slip Detection');
+legend;
+grid on;
+hold off;
+
+saveas(gcf,'slip_detection_plot.png');
+fprintf('Plot saved as slip_detection_plot.png\n');
