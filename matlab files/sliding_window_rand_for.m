@@ -1,22 +1,22 @@
 clear; clc; clear all; 
 
 % define the folders we will use for this code aka train and test folder
-train_folder = "C:/Users/18328/Desktop/onr_tact/converted_data_for_slip/train_folder"
-test_folder = "C:\Users\18328\Desktop\onr_tact\converted_data_for_slip\test_folder"
+train_folder = "C:/Users/18328/Desktop/onr_tact/converted_data_for_slip/train_folder";
+test_folder = "C:/Users/18328/Desktop/onr_tact/converted_data_for_slip/test_folder";
 
 % lets load the csv files we will be using 
 train_files = dir(fullfile(train_folder, '*.csv'));
 test_files = dir(fullfile(test_folder, '*.csv'));
 
 %  check if the number of files we said we have matches 
-if lenth(train_files) < 8 || length(test_files) < 2
+if length(train_files) < 8 || length(test_files) < 2
     error("Expected 8 training files and 2 test files. Check again ")
 end 
 
 % Define the window and step size (this can be adjusted)
 
 % number of samples per window 
-window_size = 10;
+window_size = 15;
 % step size to slide the window
 step_size = 5;
 
@@ -37,10 +37,10 @@ for i = 1:8
     % define slip condition (this will change after ground truth)
     % slip occurs if sensor 8 <0.6 (low pressure on Sensor 8)
     % or if any sensors 1-7 are > 0.5 (high pressure on other sensors)
-    slip_labels = (data.Sensor8 <0.6) | any(sensor_values(:,1:7) > 0.5, 2);
+    slip_labels = (data.Sensor8 <0.4) | any(sensor_values(:,1:7) > 0.3, 2);
 
     %  now we apply the moving window 
-    num_samples = length(time):
+    num_samples = length(time);
         for j = 1:step_size:(num_samples-window_size+1)
             % extract window data 
             window_data = sensor_values(j:j+window_size-1,:);
@@ -69,14 +69,14 @@ time_test = [];
 
 for i = 1:2
     % load the file 
-    data = readtable(fullfile(test_folder, test_files(i).names));
+    data = readtable(fullfile(test_folder, test_files(i).name));
 
     % extract time and sensor values 
     time = data.("Time_s_");
     sensor_values = table2array(data(:,2:9));
 
     % defne slip condition for test data 
-    slip_labels = (data.Sensor8 < 0.6) | any(sensor_values(:,1:7)> 0.5,2);
+    slip_labels = (data.Sensor8 < 0.4) | any(sensor_values(:,1:7)> 0.3,2);
 
     % apply moving window 
     num_samples = length(time);
@@ -105,7 +105,7 @@ accuracy = sum(y_pred == y_test)/ length(y_test)*100;
 fprintf('Model accuracy: %.2f%%\n', accuracy);
 
 %  save predictions to csv file 
-results_table = table(time,y_test,y_pred, 'VariableNames', {'Time','Actual_Slip','Predicted_Slip'});
+results_table = table(time_test, y_test, y_pred, 'VariableNames', {'Time', 'Actual_Slip', 'Predicted_Slip'});
 writetable(results_table,"predicted.csv");
 fprintf('Predictions saved to predictions.csv\n');
 
